@@ -1,7 +1,9 @@
 import './App.css';
 import React from "react";
-import {Route, Switch} from 'react-router-dom';
-import {auth} from './firebase/firebase.utils'
+import {connect} from 'react-redux';
+import {Route, Switch, Redirect} from 'react-router-dom';
+import {auth, createUserProfileDocument} from './firebase/firebase.utils'
+import {setCurrentUser} from './redux/user/user.action'
 import HomePage from "./pages/homepage/homepage.component";
 import ShopPage from "./pages/shoppage/shop.component";
 import Header from "./components/header/header.component";
@@ -15,19 +17,24 @@ const NotFound = () => (
 
 class App extends React.Component {
 
-    constructor(props) {
-        super(props);
-        this.state = {
-            currentUser: null
-        }
-    }
-
     unsubscribeAuth = null;
 
     componentDidMount() {
-        this.unsubscribeAuth = auth.onAuthStateChanged(user => {
-            this.setState({currentUser: user});
-        })
+        const {setCurrentUser} = this.props;
+
+        this.unsubscribeAuth = auth.onAuthStateChanged(async (userAuth) => {
+            if(userAuth) {
+                const userRef = await createUserProfileDocument(userAuth);
+                userRef.onSnapshot(snapshot => {
+                    setCurrentUser({
+                        id: snapshot.id,
+                        ...snapshot.data()
+                    })
+                })
+            }
+            setCurrentUser(userAuth);
+        });
+
     }
 
     componentWillUnmount() {
@@ -37,10 +44,13 @@ class App extends React.Component {
     render() {
         return (
             <div className="App">
-                <Header currentUser={this.state.currentUser} />
+                <Header />
                 <Switch>
-                    <Route exact path="/shop" component={ShopPage} />
-                    <Route exact path="/sign" component={SignPage} />
+                    <Route path="/shop" component={ShopPage} />
+                    <Route exact path="/sign"
+                           render={() => {
+                        return this.props.currentUser ? (<Redirect to='/'/>) : (<SignPage/>)
+                    }} />
                     <Route exact path="/" component={HomePage} />
                     <Route path="*" component={NotFound} />
                 </Switch>
@@ -51,6 +61,13 @@ class App extends React.Component {
 
 }
 
-export default App;
+const mapStateToProps = ({user}) => ({
+    currentUser: user.currentUser
+})
+const mapDispatchToProps = (dispatch) => ({
+    setCurrentUser: user => dispatch(setCurrentUser(user))
+})
+
+export default connect(mapStateToProps, mapDispatchToProps)(App);
 
 
