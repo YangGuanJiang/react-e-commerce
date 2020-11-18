@@ -8,6 +8,9 @@ import HomePage from "./pages/homepage/homepage.component";
 import ShopPage from "./pages/shoppage/shop.component";
 import Header from "./components/header/header.component";
 import SignPage from "./pages/signpage/signpage.compoent";
+import {createStructuredSelector} from "reselect";
+import {selectCurrentUser} from "./redux/user/user.selectors";
+import CheckoutPage from "./pages/checkout/checkout.component";
 
 const NotFound = () => (
     <div>
@@ -47,6 +50,7 @@ class App extends React.Component {
                 <Header />
                 <Switch>
                     <Route path="/shop" component={ShopPage} />
+                    <Route path="/checkout" component={CheckoutPage} />
                     <Route exact path="/sign"
                            render={() => {
                         return this.props.currentUser ? (<Redirect to='/'/>) : (<SignPage/>)
@@ -61,8 +65,8 @@ class App extends React.Component {
 
 }
 
-const mapStateToProps = ({user}) => ({
-    currentUser: user.currentUser
+const mapStateToProps = createStructuredSelector({
+    currentUser: selectCurrentUser
 })
 const mapDispatchToProps = (dispatch) => ({
     setCurrentUser: user => dispatch(setCurrentUser(user))
